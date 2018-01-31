@@ -2,48 +2,48 @@ package lexy
 
 import (
 	"bufio"
-	"io"
-	"unicode/utf8"
 	"fmt"
+	"io"
 	"strings"
+	"unicode/utf8"
 )
 
 const (
 	ErrorToken string = "ERROR"
-	EOFToken string = "EOF"
+	EOFToken   string = "EOF"
 )
 
 type State func(l *Lexer, r rune) (State, error)
 
 type Token struct {
-	key   string
-	value string
-	line int
-	column int
+	Key    string
+	Value  string
+	Line   int
+	Column int
 }
 
 func newToken(key, value string, line, column int) *Token {
 	return &Token{
-		key: key,
-		value: value,
-		line: line,
-		column: column,
+		Key:    key,
+		Value:  value,
+		Line:   line,
+		Column: column,
 	}
 }
 
 type Lexer struct {
-	tokens  chan *Token
+	tokens chan *Token
 
 	// metadata
-	bag []rune
+	bag    []rune
 	column int
-	line int
+	line   int
 }
 
 func NewLexer(tokens chan *Token) *Lexer {
 	return &Lexer{
 		tokens: tokens,
-		bag: make([]rune, 0),
+		bag:    make([]rune, 0),
 	}
 }
 
@@ -87,6 +87,13 @@ func (l *Lexer) Do(r io.Reader, state State) error {
 			l.tokens <- newToken(ErrorToken, msg, -1, -1)
 			return fmt.Errorf(msg)
 		}
+	}
+
+	state, err = state(l, 0)
+	if err != nil {
+		msg := fmt.Sprintf("Error: %v", err)
+		l.tokens <- newToken(ErrorToken, msg, -1, -1)
+		return fmt.Errorf(msg)
 	}
 
 	l.tokens <- newToken(EOFToken, "", -1, -1)
