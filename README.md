@@ -97,12 +97,12 @@ func inB(l *lexy.Lexer, r rune) (lexy.State, error) {
 This program should output:
 
 ```
-&{SequenceOfAs aaaa 1 5}
-&{SequenceOfBs bb 1 8}
-&{SequenceOfAs aaaaaaaa 1 17}
-&{SequenceOfBs bbbbbb 1 24}
-&{SequenceOfAs aaaa 2 0}
-&{EOF  -1 -1}
+&{SequenceOfAs aaaa map[]}
+&{SequenceOfBs bb map[]}
+&{SequenceOfAs aaaaaaaa map[]}
+&{SequenceOfBs bbbbbb map[]}
+&{SequenceOfAs aaaa map[]}
+&{EOF  map[]}
 <nil>
 ```
 

@@ -117,6 +117,7 @@ func inCommand(l *Lexer, r rune) (State, error) {
 func TestDo(t *testing.T) {
 	tokens := make(chan *Token, 1000)
 	l := NewLexer(tokens)
+	l.AddTracker(NewLineColumnTracker())
 	err := l.DoString(__tcase3, searchingNumberOrCommandOrResult)
 	fmt.Println("result", err)
 

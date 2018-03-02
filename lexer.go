@@ -15,36 +15,24 @@ const (
 
 type State func(l *Lexer, r rune) (State, error)
 
-type Token struct {
-	Key    string
-	Value  string
-	Line   int
-	Column int
-}
-
-func newToken(key, value string, line, column int) *Token {
-	return &Token{
-		Key:    key,
-		Value:  value,
-		Line:   line,
-		Column: column,
-	}
-}
-
 type Lexer struct {
-	tokens chan *Token
+	tokens   chan *Token
+	trackers []Tracker
 
 	// metadata
-	bag    []rune
-	column int
-	line   int
+	bag []rune
 }
 
 func NewLexer(tokens chan *Token) *Lexer {
 	return &Lexer{
-		tokens: tokens,
-		bag:    make([]rune, 0),
+		tokens:   tokens,
+		trackers: make([]Tracker, 0),
+		bag:      make([]rune, 0),
 	}
+}
+
+func (l *Lexer) AddTracker(t Tracker) {
+	l.trackers = append(l.trackers, t)
 }
 
 func (l *Lexer) Collect(r ...rune) {
@@ -54,7 +42,12 @@ func (l *Lexer) Collect(r ...rune) {
 }
 
 func (l *Lexer) Emit(key string) {
-	t := newToken(key, string(l.bag), l.line, l.column)
+	t := newToken(key, string(l.bag))
+
+	for _, tracker := range l.trackers {
+		tracker.OnEmit(t)
+	}
+
 	l.tokens <- t
 	l.bag = make([]rune, 0)
 }
@@ -68,23 +61,20 @@ func (l *Lexer) Do(r io.Reader, state State) error {
 	for s.Scan() {
 		r, width := utf8.DecodeRune(s.Bytes())
 
-		if r == utf8.RuneError {
-			msg := fmt.Sprintf("Error decoding rune %v (width %d)", r, width)
-			l.tokens <- newToken(ErrorToken, msg, -1, -1)
-			return fmt.Errorf(msg)
+		for _, tracker := range l.trackers {
+			tracker.OnScan(r)
 		}
 
-		if r == '\n' {
-			l.column = 0
-			l.line++
-		} else {
-			l.column++
+		if r == utf8.RuneError {
+			msg := fmt.Sprintf("Error decoding rune %v (width %d)", r, width)
+			l.tokens <- newToken(ErrorToken, msg)
+			return fmt.Errorf(msg)
 		}
 
 		state, err = state(l, r)
 		if err != nil {
 			msg := fmt.Sprintf("Error: %v", err)
-			l.tokens <- newToken(ErrorToken, msg, -1, -1)
+			l.tokens <- newToken(ErrorToken, msg)
 			return fmt.Errorf(msg)
 		}
 	}
@@ -92,11 +82,11 @@ func (l *Lexer) Do(r io.Reader, state State) error {
 	state, err = state(l, 0)
 	if err != nil {
 		msg := fmt.Sprintf("Error: %v", err)
-		l.tokens <- newToken(ErrorToken, msg, -1, -1)
+		l.tokens <- newToken(ErrorToken, msg)
 		return fmt.Errorf(msg)
 	}
 
-	l.tokens <- newToken(EOFToken, "", -1, -1)
+	l.tokens <- newToken(EOFToken, "")
 
 	return nil
 }
