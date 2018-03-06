@@ -8,12 +8,16 @@ func IsLineBreak(r rune) bool {
 	return r == '\n'
 }
 
+func IsTab(r rune) bool {
+	return r == '\t'
+}
+
 func IsEOF(r rune) bool {
 	return r == 0
 }
 
 func IsBlank(r rune) bool {
-	return IsSpace(r) || IsLineBreak(r) || IsEOF(r)
+	return IsSpace(r) || IsLineBreak(r) || IsTab(r)
 }
 
 func IsNumber(r rune) bool {
