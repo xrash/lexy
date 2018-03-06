@@ -3,7 +3,8 @@ package lexy
 import (
 	"fmt"
 	"testing"
-	//	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
+	"github.com/xrash/lexy"
 )
 
 var __tcase1 = `
@@ -32,8 +33,12 @@ hxg5 29. b3 Ke6 30. a3 Kd6 31. axb4 cxb4 32. Ra5 Nd5 33. f3 Bc8 34. Kf2 Bf5
 Nf2 42. g4 Bd3 43. Re6 1/2-1/2
 `
 
-func searchingNumberOrCommandOrResult(l *Lexer, r rune) (State, error) {
-	if IsBlank(r) {
+func searchingNumberOrCommandOrResult(l *lexy.Lexer, r rune) (lexy.State, error) {
+	if lexy.IsEOF(r) {
+		return searchingNumberOrCommandOrResult, nil
+	}
+
+	if lexy.IsBlank(r) {
 		return searchingNumberOrCommandOrResult, nil
 	}
 
@@ -47,12 +52,12 @@ func searchingNumberOrCommandOrResult(l *Lexer, r rune) (State, error) {
 		return searchingNumberOrCommandOrResult, nil
 	}
 
-	if IsNumber(r) {
+	if lexy.IsNumber(r) {
 		l.Collect(r)
 		return inNumberOrResult, nil
 	}
 
-	if IsLetter(r) {
+	if lexy.IsLetter(r) {
 		l.Collect(r)
 		return inCommand, nil
 	}
@@ -60,7 +65,7 @@ func searchingNumberOrCommandOrResult(l *Lexer, r rune) (State, error) {
 	return nil, fmt.Errorf("Expecting a number, a command or a result, got %v", r)
 }
 
-func inBraceCommentary(l *Lexer, r rune) (State, error) {
+func inBraceCommentary(l *lexy.Lexer, r rune) (lexy.State, error) {
 	if r == '}' {
 		return searchingNumberOrCommandOrResult, nil
 	}
@@ -68,10 +73,8 @@ func inBraceCommentary(l *Lexer, r rune) (State, error) {
 	return inBraceCommentary, nil
 }
 
-func inNumberOrResult(l *Lexer, r rune) (State, error) {
-	fmt.Println("in number or result")
-
-	if IsBlank(r) {
+func inNumberOrResult(l *lexy.Lexer, r rune) (lexy.State, error) {
+	if lexy.IsBlank(r) {
 		l.Emit("Number")
 		return searchingNumberOrCommandOrResult, nil
 	}
@@ -81,7 +84,7 @@ func inNumberOrResult(l *Lexer, r rune) (State, error) {
 		return inResult, nil
 	}
 
-	if IsNumber(r) || r == '.' {
+	if lexy.IsNumber(r) || r == '.' {
 		l.Collect(r)
 		return inNumberOrResult, nil
 	}
@@ -89,13 +92,13 @@ func inNumberOrResult(l *Lexer, r rune) (State, error) {
 	return nil, fmt.Errorf("Expecting a number or a result, got %v", r)
 }
 
-func inResult(l *Lexer, r rune) (State, error) {
-	if IsBlank(r) {
+func inResult(l *lexy.Lexer, r rune) (lexy.State, error) {
+	if lexy.IsBlank(r) {
 		l.Emit("Result")
 		return searchingNumberOrCommandOrResult, nil
 	}
 
-	if IsNumber(r) || r == '-' || r == '/' {
+	if lexy.IsNumber(r) || r == '-' || r == '/' {
 		l.Collect(r)
 		return inResult, nil
 	}
@@ -103,8 +106,8 @@ func inResult(l *Lexer, r rune) (State, error) {
 	return nil, fmt.Errorf("Expecting a result, got %v", r)
 }
 
-func inCommand(l *Lexer, r rune) (State, error) {
-	if IsBlank(r) {
+func inCommand(l *lexy.Lexer, r rune) (lexy.State, error) {
+	if lexy.IsBlank(r) {
 		l.Emit("Command")
 		return searchingNumberOrCommandOrResult, nil
 	}
@@ -115,17 +118,9 @@ func inCommand(l *Lexer, r rune) (State, error) {
 }
 
 func TestDo(t *testing.T) {
-	tokens := make(chan *Token, 1000)
-	l := NewLexer(tokens)
-	l.AddTracker(NewLineColumnTracker())
+	tokens := make(chan *lexy.Token, 1000)
+	l := lexy.NewLexer(tokens)
+	l.AddTracker(lexy.NewLineColumnTracker())
 	err := l.DoString(__tcase3, searchingNumberOrCommandOrResult)
-	fmt.Println("result", err)
-
-	for t := range tokens {
-		fmt.Println(t.Key, "\n", t.Value)
-
-		if t.Key == "EOF" || t.Key == "ERROR" {
-			break
-		}
-	}
+	assert.Nil(t, err)
 }
