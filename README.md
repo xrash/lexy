@@ -111,3 +111,25 @@ This program should output:
 ```
 
 This is the sequence of produced tokens, then the `nil` error.
+
+## Trackers
+
+A Tracker tracks all the lexer process with the functions `OnScan` and `OnEmit`. The function `OnScan` runs for every scanned rune and the function `OnEmit` runs for every token emitted.
+
+```go
+type Tracker interface {
+	OnScan(rune)
+	OnEmit(*Token)
+}
+```
+
+The tracker can do whatever it wants, like count the columns and lines and then emit this information using the `Token.Data` map. Trackers may also be used for debugging purposes. There are two Trackers already available in this package: the `LineColumnTracker` and the `DebugTracker`.
+
+You can add trackers using the `AddTracker` method of the `Lexer`, for example:
+
+```go
+l := lexy.NewLexer(tokens)
+l.AddTracker(lexy.NewLineColumnTracker())
+```
+
+Now, every token will have `Token.Data["line"]` and `Token.Data["column"]` available.
