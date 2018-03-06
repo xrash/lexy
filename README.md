@@ -14,22 +14,6 @@ var __data = `
 aaaa bb aaaaaaaa bbbbbb aaaa
 `
 
-func consumeTokens(tokens chan *lexy.Token, back chan error) {
-	for t := range tokens {
-		fmt.Println(t)
-
-		if t.Key == lexy.ErrorToken {
-			back <- fmt.Errorf("Error while lexing: %v", t.Value)
-			return
-		}
-
-		if t.Key == lexy.EOFToken {
-			back <- nil
-			return
-		}
-	}
-}
-
 func main() {
 	tokens := make(chan *lexy.Token, 1000)
 	back := make(chan error)
@@ -47,7 +31,27 @@ func main() {
 	fmt.Println(err)
 }
 
+func consumeTokens(tokens chan *lexy.Token, back chan error) {
+	for t := range tokens {
+		fmt.Println(t)
+
+		if t.Key == lexy.ErrorToken {
+			back <- fmt.Errorf("Error while lexing: %v", t.Value)
+			return
+		}
+
+		if t.Key == lexy.EOFToken {
+			back <- nil
+			return
+		}
+	}
+}
+
 func searchingAOrB(l *lexy.Lexer, r rune) (lexy.State, error) {
+	if lexy.IsEOF(r) {
+		return searchingAOrB, nil
+	}
+
 	if lexy.IsBlank(r) {
 		return searchingAOrB, nil
 	}
